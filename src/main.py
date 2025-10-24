@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 import shutil
 import os
 from sqlalchemy.orm import Session
-from . import database, models, schemas, crud, pinata
+from . import database, models, schemas, crud
 from sqlalchemy.sql import func
 from sqlalchemy import case
 
@@ -218,15 +218,6 @@ def submit_transaction(
                 raise HTTPException(status_code=500, detail=f"Error saving uploaded file: {e}")
 
             photo_filename = safe_name
-            # If Pinata is configured, attempt to pin the file and store an IPFS uri
-            try:
-                pin_resp = pinata.pin_file(dest, filename=original_name)
-                cid = pin_resp.get('IpfsHash') or pin_resp.get('IpfsHash')
-                if cid:
-                    photo_filename = f"ipfs://{cid}"
-            except Exception:
-                # Pinning failed — keep local copy and continue
-                pass
 
         # coerce weight_kg which may arrive as an empty string into None, or parse to float
         parsed_weight = None
@@ -387,14 +378,6 @@ def collect_transaction_endpoint(
             filename = safe_name
         except OSError as e:
             raise HTTPException(status_code=500, detail=f"Error saving uploaded file: {e}")
-        # attempt to pin to Pinata if configured
-        try:
-            pin_resp = pinata.pin_file(dest, filename=collected_photo.filename)
-            cid = pin_resp.get('IpfsHash')
-            if cid:
-                filename = f"ipfs://{cid}"
-        except Exception:
-            pass
 
     tx = crud.collect_transaction(db, tx_id, cw, filename)
     if not tx:

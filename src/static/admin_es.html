@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel admin - Registro de botellas</title>
+  <style>
+    :root{--card-bg:rgba(255,255,255,0.95);--overlay:rgba(0,0,0,0.35)}
+    body{font-family:Segoe UI,Arial,Helvetica,sans-serif;margin:0;padding:18px;background:#acb2bb}
+    .card{background:var(--card-bg);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.6)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #e6eef6;text-align:left}
+    .controls{display:flex;gap:8px;align-items:center}
+    select,input[type=text]{padding:6px;border-radius:6px;border:1px solid #dfe7f2}
+    button{padding:6px 8px;border-radius:6px;border:0;background:#2b6cb0;color:#fff;cursor:pointer}
+    .danger{background:#e53e3e}
+    .muted{color:#6b7280}
+  .placeholder{color:#94a3b8;font-style:italic}
+  .tx-address{color:#374151;font-size:14px}
+
+    /* mobile responsive tweaks */
+    @media (max-width:640px){
+      body{padding:12px}
+      .controls{flex-direction:column;align-items:stretch}
+      #admin-key{width:100%;box-sizing:border-box}
+      button{padding:10px 12px}
+      /* make list use card layout */
+      .tx-card{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+      .tx-row{display:flex;flex-direction:column;gap:6px}
+      .tx-meta{display:flex;gap:8px;flex-wrap:wrap}
+      .tx-date{color:#6b7280;font-size:13px;margin-top:6px}
+    .tx-actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+      table{display:none}
+    }
+    /* make sure long wallet strings don't force horizontal scroll */
+  .tx-meta > div{min-width:0}
+  /* tx-wallet is used in card/mobile view (block). wallet-cell is used in table view (inline-block) */
+  .tx-wallet{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+  /* keep .wallet-cell as a real table cell so borders span the full cell width
+    and don't collapse into a short line; use table-cell display and set a max width */
+  .wallet-cell{display:table-cell;vertical-align:middle;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 0}
+    .tx-card{overflow:hidden}
+  /* ensure top controls never push a horizontal scrollbar */
+  .top-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;align-items:center}
+  #admin-key{max-width:320px}
+  /* collect file UI */
+  .collect-file{display:none}
+  .collect-file-trigger{display:inline-block;padding:6px 8px;border-radius:6px;background:#edf2f7;border:1px solid #cbd5e1;cursor:pointer;color:#1f2937;margin-left:4px}
+  .collect-file-button{display:inline-block;padding:6px 8px;border-radius:6px;background:#2b6cb0;color:white;border:0;cursor:pointer;margin-left:6px}
+  .collect-weight{box-sizing:border-box}
+  </style>
+</head>
+<body>
+  <h1>Panel Admin</h1>
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      <div style="display:flex;justify-content:flex-start;gap:8px;align-items:center">
+        <input id="admin-key" type="text" placeholder="x-admin-key" />
+        <button id="refresh">Refrescar</button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="controls">
+          <label for="filter-status">Estado</label>
+          <select id="filter-status"><option value="all">Todos</option><option value="pending" selected>Pendiente</option><option value="collected">Recogida</option><option value="cancelled">Cancelada</option></select>
+        </div>
+        <div class="controls">
+          <label for="q">Buscar</label>
+          <input id="q" type="text" placeholder="nombre, wallet o teléfono" />
+        </div>
+      </div>
+    </div>
+
+    <div id="list" style="overflow:auto;max-height:60vh">
+      Cargando...
+    </div>
+  </div>
+
+  <script>
+    const listEl = document.getElementById('list')
+    const statusEl = document.getElementById('filter-status')
+    const qEl = document.getElementById('q')
+    const refreshBtn = document.getElementById('refresh')
+    const adminKeyEl = document.getElementById('admin-key')
+
+    async function load(){
+      try{
+        listEl.innerHTML = 'Cargando...'
+        const r = await fetch(`/transactions?limit=200`)
+        if(!r.ok) throw new Error('failed: '+r.status)
+        const rows = await r.json()
+        render(rows)
+      }catch(e){ listEl.innerText = 'Error cargando: '+(e.message||e) }
+    }
+
+    function render(rows){
+      const status = statusEl.value
+      const q = (qEl.value||'').toLowerCase().trim()
+      const filtered = rows.filter(r=>{
+        if(status!=='all' && (r.status||'')!==status) return false
+        if(!q) return true
+        return (String(r.name||'')+String(r.wallet||'')+String(r.phone||'')).toLowerCase().includes(q)
+      })
+      if(filtered.length===0){ listEl.innerHTML = '<div class="muted">No hay registros</div>'; return }
+      const isMobile = window.innerWidth <= 640
+      if(!isMobile){
+  let html = '<table><thead><tr><th>ID</th><th>Nombre</th><th>Tel</th><th>Wallet</th><th>Dirección</th><th>Peso</th><th>Fecha</th><th>Estado</th><th></th></tr></thead><tbody>'
+        for(const r of filtered){
+          const addressCell = r.address ? `<div class="tx-address">${escapeHtml(r.address)}</div>` : `<div class="tx-address placeholder">Sin dirección</div>`
+          const walletCell = r.wallet ? escapeHtml(r.wallet) : '<span class="placeholder">Sin wallet</span>'
+          html += `<tr><td>${r.id}</td><td>${escapeHtml(r.name||'')}</td><td>${escapeHtml(r.phone||'')}</td><td class="wallet-cell">${walletCell}</td><td>${addressCell}</td><td>${r.weight_kg||''}</td><td>${r.date||''}</td><td>${r.status||''}</td><td>`
+      html += `<select data-id="${r.id}" class="status-select"><option value="pending">pending</option><option value="collected">collected</option><option value="cancelled">cancelled</option></select>`
+    html += ` <button data-id="${r.id}" class="del danger">Eliminar</button>`
+      // collect controls (desktop)
+      html += `<div style="display:inline-block;margin-left:8px;vertical-align:middle">`+
+  `<input type="number" step="0.01" placeholder="Kg" class="collect-weight" data-id="${r.id}" style="width:80px;padding:4px;margin-right:6px" required>`+
+  `<input id="collect-file-${r.id}" type="file" accept="image/*" capture class="collect-file" data-id="${r.id}">`+
+      `<button type="button" data-id="${r.id}" class="collect-file-button">📷</button>`+
+                  `<button data-id="${r.id}" class="collect-button" style="margin-left:6px">Marcar recogida</button>`+
+        `</div>`
+          html += `</td></tr>`
+        }
+        html += '</tbody></table>'
+        listEl.innerHTML = html
+        // set selects to current status
+        document.querySelectorAll('.status-select').forEach(s=>{ const id=s.getAttribute('data-id'); const row=filtered.find(r=>String(r.id)===String(id)); if(row) s.value = row.status })
+      } else {
+        // mobile: render as cards
+        let html = ''
+    for(const r of filtered){
+  // show collected weight if present, otherwise show submitted weight
+  const displayWeight = (r.collected_weight_kg != null) ? `${r.collected_weight_kg} kg (recogido)` : ((r.weight_kg != null) ? `${r.weight_kg} kg` : '')
+  const mobileWallet = r.wallet ? `<div class="tx-wallet">${escapeHtml(r.wallet)}</div>` : `<div class="placeholder">Sin wallet</div>`
+  const mobileAddress = r.address ? `<div class="tx-address">${escapeHtml(r.address)}</div>` : `<div class="placeholder">Sin dirección</div>`
+  html += `<div class="tx-card"><div class="tx-row"><div><strong>#${r.id} — ${escapeHtml(r.name||'')}</strong></div><div class="tx-meta"><div>${escapeHtml(r.phone||'')}</div>${mobileWallet}${mobileAddress}<div>${displayWeight}</div></div><div class="tx-date">${r.date||''}</div><div class="tx-actions">`
+  html += `<select data-id="${r.id}" class="status-select"><option value="pending">pending</option><option value="collected">collected</option><option value="cancelled">cancelled</option></select>`
+  html += ` <button data-id="${r.id}" class="del danger">Eliminar</button>`
+  // collect inputs for mobile: hidden file input + visible label trigger to open camera
+  html += `<div style="display:flex;gap:6px;align-items:center;margin-left:6px;margin-top:6px">`+
+    `<input type="number" step="0.01" placeholder="Kg" class="collect-weight" data-id="${r.id}" style="width:80px;padding:6px" required>`+
+    `<input id="collect-file-${r.id}" type="file" accept="image/*" capture class="collect-file" data-id="${r.id}">`+
+    `<button type="button" data-id="${r.id}" class="collect-file-button">📷</button>`+
+    `<button data-id="${r.id}" class="collect-button">Marcar recogida</button>`+
+    `</div>`
+  html += `</div></div></div>`
+        }
+        listEl.innerHTML = html
+        document.querySelectorAll('.status-select').forEach(s=>{ const id=s.getAttribute('data-id'); const row=filtered.find(r=>String(r.id)===String(id)); if(row) s.value = row.status })
+      }
+    }
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+    refreshBtn.addEventListener('click', load)
+    statusEl.addEventListener('change', load)
+    qEl.addEventListener('input', load)
+
+    document.addEventListener('click', async (e)=>{
+      const fileTriggerBtn = e.target.closest('.collect-file-button')
+      if(fileTriggerBtn){
+        const id = fileTriggerBtn.getAttribute('data-id')
+        const input = document.getElementById(`collect-file-${id}`)
+        if(input) input.click()
+        return
+      }
+      // status auto-save when select changes
+      const sel = e.target.closest && e.target.closest('.status-select')
+      if(sel && sel.tagName === 'SELECT'){
+        const id = sel.getAttribute('data-id')
+        const status = sel.value
+        const key = adminKeyEl.value
+        try{
+          sel.disabled = true
+          const r = await fetch(`/transactions/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-key':key},body:JSON.stringify({status})})
+          if(!r.ok) throw new Error('failed: '+r.status)
+          await load()
+        }catch(err){ alert('Error guardando estado: '+(err.message||err)) }finally{ sel.disabled = false }
+        return
+      }
+      const collectBtn = e.target.closest('.collect-button')
+      if(collectBtn){
+        const id = collectBtn.getAttribute('data-id')
+        const key = adminKeyEl.value
+        const weightEl = document.querySelector(`.collect-weight[data-id="${id}"]`)
+        const fileEl = document.querySelector(`.collect-file[data-id="${id}"]`)
+        const fd = new FormData()
+        // client-side validation: collected weight is required and must be > 0
+        if(!weightEl || !weightEl.value || Number(weightEl.value) <= 0){
+          alert('Por favor ingresa un peso válido (mayor que 0) antes de marcar recogida')
+          return
+        }
+        fd.append('collected_weight', weightEl.value)
+        if(fileEl && fileEl.files && fileEl.files[0]) fd.append('collected_photo', fileEl.files[0])
+        try{
+          collectBtn.disabled = true
+          const r = await fetch(`/transactions/${id}/collect`,{method:'PATCH',body:fd,headers:{'x-admin-key':key}})
+          if(!r.ok) throw new Error('failed: '+r.status)
+          await load()
+        }catch(err){ alert('Error marcando recogida: '+(err.message||err)) }finally{ collectBtn.disabled = false }
+      }
+      const del = e.target.closest('.del')
+      if(del){
+        if(!confirm('Eliminar transacción?')) return
+        const id = del.getAttribute('data-id')
+        const key = adminKeyEl.value
+        try{
+          del.disabled = true
+          const r = await fetch(`/transactions/${id}`,{method:'DELETE',headers:{'x-admin-key':key}})
+          if(!r.ok) throw new Error('failed: '+r.status)
+          await load()
+        }catch(err){ alert('Error eliminando: '+(err.message||err)) }finally{ del.disabled = false }
+      }
+    })
+
+    // initial
+    load()
+  </script>
+</body>
+</html>

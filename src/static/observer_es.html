@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel público - Registro de botellas</title>
+  <style>
+    :root{--card-bg:rgba(255,255,255,0.9);--overlay:rgba(0,0,0,0.35)}
+    html,body{height:100%}
+    body{
+      font-family:Segoe UI,Arial;
+      margin:0;padding:0;
+      min-height:100%;
+      background-image:url('/static/ecyv.svg');
+      background-size:cover;
+      background-position:center center;
+      background-repeat:no-repeat;
+      padding:24px;display:flex;flex-direction:column;align-items:center;
+    }
+    .bg-overlay{position:fixed;inset:0;background:var(--overlay);pointer-events:none}
+    .container{position:relative;z-index:2;width:100%;max-width:900px}
+    .card{background:var(--card-bg);padding:12px;border-radius:10px;margin-bottom:8px;box-shadow:0 6px 18px rgba(15,23,42,0.08)}
+    h1,h2{color:#fff}
+    #debug{color:#ffdddd;margin-top:12px;font-weight:bold}
+    @media(max-width:640px){body{padding:12px}.container{padding:0 8px}}
+  </style>
+</head>
+<body>
+  <div class="bg-overlay" aria-hidden="true"></div>
+  <div class="container">
+  <h1>Panel público</h1>
+  <!-- Mobile header / burger menu (compact) -->
+  <header style="position:relative;z-index:3;max-width:900px;margin:8px 0;padding:0 8px;display:flex;align-items:center;justify-content:space-between">
+    <button id="burger" aria-label="Abrir menú" aria-expanded="false" style="font-size:20px;padding:8px 10px;border-radius:8px;border:0;background:rgba(255,255,255,0.6);color:#fff;backdrop-filter:blur(4px)">☰</button>
+    <div style="color:#fff;font-weight:700">Observar</div>
+    <nav id="mobile-nav" aria-hidden="true" style="position:fixed;top:0;right:-320px;width:280px;height:100%;background:rgba(255,255,255,0.97);box-shadow:-6px 0 18px rgba(2,6,23,0.35);transition:right .25s;z-index:40;padding:18px">
+      <button id="close-nav" aria-label="Cerrar" style="float:right;border:0;background:transparent;font-size:18px">✕</button>
+      <ul style="list-style:none;padding:16px 0;margin:36px 0 0 0;display:flex;flex-direction:column;gap:12px">
+        <li><a href="/static/submit_es.html">Reciclar</a></li>
+        <li><a href="/static/observer_es.html">Observar</a></li>
+        <li><a href="/static/ranking_es.html">Ranking</a></li>
+      </ul>
+    </nav>
+    <div id="nav-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30"></div>
+  </header>
+  <div id="stats"></div>
+
+  <!-- Filter controls: All / Collected / Pending -->
+  <div style="margin-top:12px;max-width:720px;">
+    <div class="card" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="font-weight:700;color:#1a202c">Filtrar:</div>
+      <div id="filter-controls" style="display:flex;gap:8px">
+        <button class="filter-btn" data-filter="all" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:#111">Todos</button>
+        <button class="filter-btn" data-filter="collected" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:#111">Recogidas</button>
+        <button class="filter-btn" data-filter="pending" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:#111">Pendientes</button>
+      </div>
+      <div style="margin-left:auto;color:#1a202c;font-size:13px" id="list-info"></div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:14px">Últimas transacciones</h2>
+  <div id="list"></div>
+  <div id="debug" style="color:#c00;margin-top:12px;font-weight:bold"></div>
+
+  <!-- Authentication removed for MVP - leaderboard is public and aggregates by wallet field -->
+
+  <!-- Leaderboard removed for this view; ranking is on a dedicated page -->
+
+  <script>
+    async function loadLeaderboard(){
+      try {
+        const r = await fetch('/ranking')
+        const data = await r.json()
+        renderLeaderboard(data)
+      } catch (e) {
+        console.error('Failed loading ranking', e)
+        document.getElementById('leaderboard').innerText = 'Error cargando ranking'
+      }
+    }
+
+    function renderLeaderboard(rows) {
+      const container = document.getElementById('leaderboard')
+      if(!rows || rows.length === 0){ container.innerHTML = '<p>No hay datos aún.</p>'; return }
+      let html = '<ol>'
+      for(const row of rows){
+        const wallet = row.wallet || 'anonymous'
+        html += `<li style="margin:6px 0;"><strong>${escapeHtml(wallet)}</strong> — ${(+row.total_kg).toFixed(2)} kg</li>`
+      }
+      html += '</ol>'
+      container.innerHTML = html
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+    // load on start
+    loadLeaderboard()
+
+    // visible debug output so we don't depend on console
+    const dbg = document.getElementById('debug')
+    //dbg.innerText = 'script loaded'
+
+    window.addEventListener('error', (ev) => {
+      console.error(ev.error || ev.message)
+      dbg.innerText = 'Global error: ' + (ev.error?.message || ev.message)
+    })
+
+    // transaction list / filter behavior
+    let allTransactions = []
+    let currentFilter = 'all' // all | collected | pending
+
+    function applyFilterAndRender(){
+      const el = document.getElementById('list')
+      el.innerHTML = ''
+      // exclude cancelled transactions
+      let items = allTransactions.filter(t => (t.status || '').toLowerCase() !== 'cancelled' && (t.status || '').toLowerCase() !== 'cancelada')
+      // sort by collected_at desc, then date desc, then created_at desc (most recent first).
+      // Some rows record the actual timestamp in `collected_at` so prefer that when present.
+      // use Date.parse for robust parsing and prefer rows with a collected_at timestamp
+      function tsOf(r){
+        const v = (r && (r.collected_at || r.date || r.created_at)) || ''
+        const p = Date.parse(v)
+        return isNaN(p) ? 0 : p
+      }
+      function hasCollected(r){ return !!(r && r.collected_at) }
+      items.sort((a,b)=>{
+        // first prefer items that have collected_at (so recently-collected show above submitted-only)
+        const ha = hasCollected(a) ? 1 : 0
+        const hb = hasCollected(b) ? 1 : 0
+        if(hb !== ha) return hb - ha
+        // then sort by timestamp (newest first)
+        return tsOf(b) - tsOf(a)
+      })
+      // apply filter
+      if(currentFilter === 'collected') items = items.filter(t => (t.status || '').toLowerCase() === 'collected' || (t.status || '').toLowerCase() === 'recogida' || (t.status || '').toLowerCase() === 'recibida')
+      if(currentFilter === 'pending') items = items.filter(t => (t.status || '').toLowerCase() === 'pending' || (t.status || '').toLowerCase() === 'pendiente')
+      const totalShown = Math.min(10, items.length)
+      document.getElementById('list-info').innerText = `Mostrando ${totalShown} de ${items.length} coincidencias`
+      if(items.length === 0){ el.innerText = 'Sin transacciones que mostrar'; return }
+      items.slice(0,10).forEach(t => {
+        const d = document.createElement('div')
+        d.className = 'card'
+        let imgHtml = ''
+        // submission photo (original)
+        if(t.photo){
+          const url = '/static/uploads/' + t.photo
+          imgHtml += `<div style="margin-bottom:6px;color:#666;font-size:12px">Original: ${url}</div><a href="${url}" target="_blank"><img src="${url}" style="max-width:120px;max-height:80px;display:block;margin-bottom:8px" onerror="this.style.display='none'" alt="Imagen envío"/></a>`
+        }
+        // collected photo (admin proof)
+        if(t.collected_photo){
+          const curl = '/static/uploads/' + t.collected_photo
+          imgHtml += `<div style="margin-bottom:6px;color:#666;font-size:12px">Foto recogida: ${curl}</div><a href="${curl}" target="_blank"><img src="${curl}" style="max-width:120px;max-height:80px;display:block;margin-bottom:8px;border:2px solid #2b6cb0" onerror="this.style.display='none'" alt="Imagen recogida"/></a>`
+        }
+
+        // decide which weight to show: prefer collected_weight if present
+        const displayWeight = (t.collected_weight_kg != null) ? `${t.collected_weight_kg} kg (recogido)` : ((t.weight_kg != null) ? `${t.weight_kg} kg` : '—')
+        // prefer collected_at timestamp when present
+        const when = t.collected_at || t.date || t.created_at || ''
+        d.innerHTML = `${imgHtml}<b>${t.name}</b> - ${displayWeight} - ${t.status} <br/> ${when}`
+        el.appendChild(d)
+      })
+    }
+
+    // wire filter buttons
+    document.addEventListener('click', (ev)=>{
+      const btn = ev.target.closest && ev.target.closest('.filter-btn')
+      if(!btn) return
+      const f = btn.getAttribute('data-filter')
+      if(!f) return
+      currentFilter = f
+  // visual active state: dark translucent background with white text for contrast
+  document.querySelectorAll('.filter-btn').forEach(b=>{ b.style.background = 'transparent'; b.style.color = '#111' })
+  btn.style.background = 'rgba(0,0,0,0.18)'; btn.style.color = '#fff'
+      applyFilterAndRender()
+    })
+
+    async function load(){
+      try{
+        const s = await fetch('/stats')
+        if(!s.ok) throw new Error('stats fetch failed: ' + s.status)
+        const stats = await s.json()
+        document.getElementById('stats').innerHTML = `<div class="card">Total kg: ${stats.total_kg} | Transacciones: ${stats.total_count}</div>`
+
+        // fetch more items (server side limit still applies) to ensure we can sort/filter reliably
+        const l = await fetch('/transactions?limit=100')
+        if(!l.ok) throw new Error('transactions fetch failed: ' + l.status)
+        const items = await l.json()
+        // store
+        allTransactions = Array.isArray(items) ? items : []
+        // default visual active
+        const firstBtn = document.querySelector('.filter-btn[data-filter="all"]')
+        if(firstBtn) firstBtn.style.background = 'rgba(255,255,255,0.12)'
+        applyFilterAndRender()
+      }catch(e){
+        console.error(e)
+        dbg.innerText = 'JS error: ' + (e.message || e)
+      }
+    }
+    load()
+  </script>
+  <script>
+    // burger menu logic
+    (function(){
+      const burger = document.getElementById('burger')
+      const nav = document.getElementById('mobile-nav')
+      const close = document.getElementById('close-nav')
+      const overlay = document.getElementById('nav-overlay')
+      function openNav(){ nav.style.right='0'; overlay.style.pointerEvents='auto'; overlay.style.opacity='1'; burger.setAttribute('aria-expanded','true'); nav.setAttribute('aria-hidden','false') }
+      function closeNav(){ nav.style.right='-320px'; overlay.style.pointerEvents='none'; overlay.style.opacity='0'; burger.setAttribute('aria-expanded','false'); nav.setAttribute('aria-hidden','true') }
+      burger && burger.addEventListener('click', openNav)
+      close && close.addEventListener('click', closeNav)
+      overlay && overlay.addEventListener('click', closeNav)
+      window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeNav() })
+    })()
+  </script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,192 @@
+
+---- ERROR at submit: ----
+Traceback (most recent call last):
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.IntegrityError: NOT NULL constraint failed: transactions.weight_kg
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\src\main.py", line 192, in submit_transaction
+    db_tx = crud.create_transaction(db, tx_in)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\src\crud.py", line 16, in create_transaction
+    db.commit()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 2030, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1311, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1286, in _prepare_impl
+    self.session.flush()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4331, in flush
+    self._flush(objects)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4467, in _flush
+    transaction.rollback(_capture_exception=True)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4427, in _flush
+    flush_context.execute()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 1233, in _emit_insert_statements
+    result = connection.execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: transactions.weight_kg
+[SQL: INSERT INTO transactions (name, phone, wallet, weight_kg, address, photo, status, collected_weight_kg, collected_photo, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, date]
+[parameters: ('Valeria Malave', '04166946597', None, None, 'calle 16 vecina', '86d4abf1eeaf4621aab44d91d5d9aa13.jpg', 'pending', None, None, None)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+---- ERROR at submit: ----
+Traceback (most recent call last):
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.IntegrityError: NOT NULL constraint failed: transactions.weight_kg
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\src\main.py", line 192, in submit_transaction
+    db_tx = crud.create_transaction(db, tx_in)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\src\crud.py", line 16, in create_transaction
+    db.commit()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 2030, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1311, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1286, in _prepare_impl
+    self.session.flush()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4331, in flush
+    self._flush(objects)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4467, in _flush
+    transaction.rollback(_capture_exception=True)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4427, in _flush
+    flush_context.execute()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 1233, in _emit_insert_statements
+    result = connection.execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: transactions.weight_kg
+[SQL: INSERT INTO transactions (name, phone, wallet, weight_kg, address, photo, status, collected_weight_kg, collected_photo, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, date]
+[parameters: ('Valeria Malave', '04166946597', None, None, 'calle 16 vecina', '5af3bdd7a57647989fd9a9a01c815009.jpg', 'pending', None, None, None)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+---- ERROR at submit: ----
+Traceback (most recent call last):
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.IntegrityError: NOT NULL constraint failed: transactions.weight_kg
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\src\main.py", line 192, in submit_transaction
+    db_tx = crud.create_transaction(db, tx_in)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\src\crud.py", line 16, in create_transaction
+    db.commit()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 2030, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1311, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1286, in _prepare_impl
+    self.session.flush()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4331, in flush
+    self._flush(objects)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4467, in _flush
+    transaction.rollback(_capture_exception=True)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4427, in _flush
+    flush_context.execute()
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 1233, in _emit_insert_statements
+    result = connection.execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\ljcs_\OneDrive\Desktop\Tx\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: transactions.weight_kg
+[SQL: INSERT INTO transactions (name, phone, wallet, weight_kg, address, photo, status, collected_weight_kg, collected_photo, collected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, date]
+[parameters: ('Paola Segura', '0412255077004248080516', None, None, 'sector 1', '403f85178bfe4dfcafead1b226dfd5e0.jpg', 'pending', None, None, None)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)

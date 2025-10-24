@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ranking público - Registro de botellas</title>
+  <style>
+    :root{--card-bg:rgba(255,255,255,0.9);--overlay:rgba(0,0,0,0.35)}
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      font-family:Segoe UI,Arial,Helvetica,sans-serif;
+      margin:0;padding:0;
+      min-height:100%;
+      background-image:url('/static/ecyv.svg');
+      background-size:cover;
+      background-position:center center;
+      background-repeat:no-repeat;
+      padding:24px;display:flex;flex-direction:column;align-items:center;
+    }
+    .bg-overlay{position:fixed;inset:0;background:var(--overlay);pointer-events:none}
+    .container{position:relative;z-index:2;width:100%;max-width:900px}
+    .card{background:var(--card-bg);padding:12px;border-radius:10px;margin-bottom:8px;box-shadow:0 6px 18px rgba(15,23,42,0.08)}
+    h1,h2{color:#fff}
+    ol{padding-left:18px}
+    @media(max-width:640px){body{padding:12px}.container{padding:0 8px}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Mobile header / burger menu -->
+    <header style="position:relative;z-index:3;max-width:900px;margin:8px 0;padding:0 8px;display:flex;align-items:center;justify-content:space-between">
+      <button id="burger" aria-label="Abrir menú" aria-expanded="false" style="font-size:20px;padding:8px 10px;border-radius:8px;border:0;background:rgba(255,255,255,0.6);color:#fff;backdrop-filter:blur(4px)">☰</button>
+      <div style="color:#fff;font-weight:700">Ranking</div>
+      <nav id="mobile-nav" aria-hidden="true" style="position:fixed;top:0;right:-320px;width:280px;height:100%;background:rgba(255,255,255,0.97);box-shadow:-6px 0 18px rgba(2,6,23,0.35);transition:right .25s;z-index:40;padding:18px">
+        <button id="close-nav" aria-label="Cerrar" style="float:right;border:0;background:transparent;font-size:18px">✕</button>
+        <ul style="list-style:none;padding:16px 0;margin:36px 0 0 0;display:flex;flex-direction:column;gap:12px">
+          <li><a href="/static/submit_es.html">Reciclar</a></li>
+          <li><a href="/static/observer_es.html">Observar</a></li>
+          <li><a href="/static/ranking_es.html">Ranking</a></li>
+        </ul>
+      </nav>
+      <div id="nav-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30"></div>
+    </header>
+
+    <h1>Ranking público</h1>
+    <div id="leaderboard" class="card">Cargando...</div>
+
+    <!-- contributors modal removed -->
+
+    <div id="debug" style="color:#c00;margin-top:12px;font-weight:bold"></div>
+  </div>
+
+  <script>
+    async function loadLeaderboard(){
+      try {
+        const r = await fetch('/ranking')
+        if(!r.ok) throw new Error('fetch failed: ' + r.status)
+        const data = await r.json()
+        renderLeaderboard(data)
+      } catch (e) {
+        console.error('Failed loading ranking', e)
+        document.getElementById('leaderboard').innerText = 'Error cargando ranking'
+        document.getElementById('debug').innerText = e.message || e
+      }
+    }
+
+    function renderLeaderboard(rows) {
+      const container = document.getElementById('leaderboard')
+      if(!rows || rows.length === 0){ container.innerHTML = '<p>No hay datos aún.</p>'; return }
+      let html = '<ol>'
+      for(const row of rows){
+        // Prefer the recorded representative name (rep_name). If present and there's a wallet_prefix, show "Name (abcd)".
+        let text = row.display_name || ''
+        if(row.rep_name && row.wallet_prefix){
+          text = `${row.rep_name} (${row.wallet_prefix})`
+        } else if(row.rep_name && row.type === 'phone'){
+          // show only last 4 digits of phone for privacy
+          const digits = (row.identifier || '').replace(/\D/g, '')
+          const last4 = digits.length > 4 ? digits.slice(-4) : digits
+          text = `${row.rep_name} (${last4})`
+        }
+        let displayName = text || row.display_name || row.identifier || 'anonymous'
+        // if it's a phone identity but displayName still contains a full phone, mask it to last 4 digits
+        if(row.type === 'phone'){
+          const digits = (row.identifier || '').replace(/\D/g, '')
+          const last4 = digits.length > 4 ? digits.slice(-4) : digits
+          // if there is no rep_name and displayName contains the identifier, replace it
+          if(!row.rep_name && displayName.includes(row.identifier || '')){
+            displayName = `${row.rep_name || 'anonymous'} (${last4})`
+          }
+        }
+  html += `<li style="margin:6px 0;"><strong>${escapeHtml(displayName)}</strong> — ${(+row.total_kg).toFixed(2)} kg</li>`
+      }
+      html += '</ol>'
+      container.innerHTML = html
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+    loadLeaderboard()
+
+    // contributors removed
+  </script>
+  <script>
+    // burger menu logic (same as other pages)
+    (function(){
+      const burger = document.getElementById('burger')
+      const nav = document.getElementById('mobile-nav')
+      const close = document.getElementById('close-nav')
+      const overlay = document.getElementById('nav-overlay')
+      function openNav(){ nav.style.right='0'; overlay.style.pointerEvents='auto'; overlay.style.opacity='1'; burger.setAttribute('aria-expanded','true'); nav.setAttribute('aria-hidden','false') }
+      function closeNav(){ nav.style.right='-320px'; overlay.style.pointerEvents='none'; overlay.style.opacity='0'; burger.setAttribute('aria-expanded','false'); nav.setAttribute('aria-hidden','true') }
+      burger && burger.addEventListener('click', openNav)
+      close && close.addEventListener('click', closeNav)
+      overlay && overlay.addEventListener('click', closeNav)
+      window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeNav() })
+    })()
+  </script>
+</body>
+</html>

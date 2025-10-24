@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Enviar botellas - Registro</title>
+  <style>
+    /* Observer base styles (shared) */
+    :root{--card-bg:rgba(255,255,255,0.9);--overlay:rgba(0,0,0,0.35)}
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      font-family:Segoe UI,Arial,Helvetica,sans-serif;
+      margin:0;padding:0;
+      min-height:100%;
+      background-image:url('/static/ecyv.svg');
+      background-size:cover;
+      background-position:center center;
+      background-repeat:no-repeat;
+      padding:24px;display:flex;flex-direction:column;align-items:center;
+      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    }
+    .bg-overlay{position:fixed;inset:0;background:var(--overlay);pointer-events:none}
+    .container{position:relative;z-index:2;width:100%;max-width:900px}
+    .card{background:var(--card-bg);padding:12px;border-radius:10px;margin-bottom:8px;box-shadow:0 6px 18px rgba(15,23,42,0.08)}
+    h1,h2{color:#fff}
+    @media(max-width:640px){body{padding:12px}.container{padding:0 8px}}
+
+    /* submit-specific tweaks */
+    header{width:100%;box-sizing:border-box}
+    main{position:relative;z-index:2;width:100%;max-width:760px}
+    form{max-width:640px;margin:0 auto;background:transparent;padding:0}
+    label{display:block;margin-top:10px;color:#1a202c;font-weight:600}
+    input,textarea{width:100%;padding:10px 12px;margin-top:6px;border:1px solid #e2e8f0;border-radius:8px;font-size:15px}
+  button{margin-top:12px;padding:10px 14px;background:#2b6cb0;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700}
+  #result{position:relative;z-index:2}
+  /* result notice boxes */
+  #result.notice{padding:10px 12px;border-radius:8px;margin-top:12px}
+  #result.success{background:#e6ffed;border:1px solid #b7f0c6;color:#0b7a3a}
+  #result.error{background:#fff0f0;border:1px solid #f3b0b0;color:#842029}
+
+  /* photo area (reduced height) */
+  #photo-area{border:2px dashed #cbd5e1;border-radius:8px;padding:8px 10px 0;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,0.95);cursor:pointer;min-height:0}
+  #photo-area > div {flex: 1 1 140px; min-width:120px}
+  /* make buttons inside the photo area sit without extra top/bottom margins and be more compact */
+  #photo-area button{margin-top:0;margin-bottom:0;padding:6px 12px;line-height:1}
+  #photo-area > div:first-child{padding-bottom:0;margin-bottom:0}
+  #photo-preview{width:80px;height:60px;display:none;align-items:center;justify-content:center;overflow:hidden;border-radius:6px;border:1px solid #e2e8f0;background:#fff}
+    #photo-preview img{max-width:100%;height:auto;display:block}
+    #photo-fname{font-size:13px;color:#4a5568;margin-top:6px;max-width:100%;word-break:break-word}
+
+    .muted{color:#4a5568;font-size:13px}
+
+    /* responsive */
+    @media (max-width:640px){
+      h1{font-size:22px}
+  /* make photo area approx 2/3 of previous mobile height */
+  #photo-area{flex-direction:column;align-items:stretch;padding:6px}
+  /* compact stacked children on mobile: remove the 140px flex-basis that created extra height */
+  #photo-area > div{min-width:0;width:100%;flex:0 0 auto}
+  #photo-preview{width:100%;height:auto;min-height:40px}
+  /* ensure no extra bottom spacing on mobile */
+  #photo-area{padding-bottom:0}
+  /* slightly reduce camera icon size on small screens */
+  #photo-area > div:first-child > div:first-child{font-size:28px}
+      button,input,textarea{width:100%}
+      #pick-photo,#clear-photo{width:100%}
+      nav#mobile-nav{width:85vw;right:-85vw}
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-overlay" aria-hidden="true"></div>
+  <div class="container">
+  <!-- Mobile header / burger menu (compact) -->
+  <header style="position:relative;z-index:3;max-width:900px;margin:8px 0;padding:0 8px;display:flex;align-items:center;justify-content:space-between">
+    <button id="burger" aria-label="Abrir menú" aria-expanded="false" style="font-size:20px;padding:8px 10px;border-radius:8px;border:0;background:rgba(255,255,255,0.6);color:#fff;backdrop-filter:blur(4px)">☰</button>
+    <nav id="mobile-nav" aria-hidden="true" style="position:fixed;top:0;right:-320px;width:280px;height:100%;background:rgba(255,255,255,0.97);box-shadow:-6px 0 18px rgba(2,6,23,0.35);transition:right .25s;z-index:40;padding:18px">
+      <button id="close-nav" aria-label="Cerrar" style="float:right;border:0;background:transparent;font-size:18px">✕</button>
+      <ul style="list-style:none;padding:16px 0;margin:36px 0 0 0;display:flex;flex-direction:column;gap:12px">
+        <li><a href="/static/submit_es.html">Reciclar</a></li>
+        <li><a href="/static/observer_es.html">Observar</a></li>
+        <li><a href="/static/ranking_es.html">Ranking</a></li>
+      </ul>
+    </nav>
+    <div id="nav-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30"></div>
+  </header>
+
+    <main>
+      <h1>Reciclar</h1>
+      <div class="card">
+        <form id="form">
+          <!-- honeypot field (hidden) to trap bots; legitimate users won't fill this -->
+          <input name="hp" id="hp" type="text" autocomplete="off" tabindex="-1" style="position:absolute;left:-9999px;opacity:0" />
+          <label>Nombre *</label>
+          <input name="name" required autocomplete="name" />
+
+          <label>Teléfono</label>
+          <input name="phone" inputmode="tel" autocomplete="tel" />
+
+          <label>Dirección</label>
+          <input name="address" autocomplete="street-address" />
+
+          <label>Wallet</label>
+          <input name="wallet" autocomplete="off" />
+
+          <label>Peso (kg)</label>
+          <input id="weight-input" name="weight_kg" type="number" step="0.01" min="0.01" inputmode="decimal" />
+
+          <label>Foto (si no pesa, sube una imagen)</label>
+          <div id="photo-area">
+            <div style="display:flex;align-items:center;gap:12px;justify-content:center;flex-direction:column;text-align:center;padding:6px">
+              <div style="font-size:36px;line-height:1">📷</div>
+              <div style="line-height:1.2;color:#1a202c;font-weight:600">Tomar foto o arrastrar imagen aquí</div>
+              <div class="muted">Seleccionar un archivo o usar la cámara del móvil</div>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;flex-direction:column">
+              <input id="photo-input" name="photo" type="file" accept="image/*" capture="environment" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" />
+              <button type="button" id="pick-photo">📷 Tomar / Seleccionar</button>
+              <button type="button" id="clear-photo" style="display:none;background:#fff;color:#c00;border:1px solid #f56565">Eliminar</button>
+              <div id="photo-fname"></div>
+            </div>
+
+            <div id="photo-preview">
+              <img id="photo-thumb" src="" alt="preview" />
+            </div>
+          </div>
+
+          <div id="drop-hint" class="muted">También puedes arrastrar la imagen desde tu escritorio aquí.</div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px">
+            <div style="flex:1">
+              <button type="button" id="submit-btn">Enviar</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div id="result" style="max-width:600px;margin:18px auto;position:relative;z-index:2"></div>
+    </main>
+  </div>
+
+  <script>
+    // burger menu logic
+    (function(){
+      const burger = document.getElementById('burger')
+      const nav = document.getElementById('mobile-nav')
+      const close = document.getElementById('close-nav')
+      const overlay = document.getElementById('nav-overlay')
+      function openNav(){ nav.style.right='0'; overlay.style.pointerEvents='auto'; overlay.style.opacity='1'; burger.setAttribute('aria-expanded','true'); nav.setAttribute('aria-hidden','false') }
+      function closeNav(){ nav.style.right='-320px'; overlay.style.pointerEvents='none'; overlay.style.opacity='0'; burger.setAttribute('aria-expanded','false'); nav.setAttribute('aria-hidden','true') }
+      burger && burger.addEventListener('click', openNav)
+      close && close.addEventListener('click', closeNav)
+      overlay && overlay.addEventListener('click', closeNav)
+      window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeNav() })
+    })()
+
+    // form + photo UX
+    const form = document.getElementById('form')
+    const result = document.getElementById('result')
+    const photoInput = document.getElementById('photo-input')
+    const pickBtn = document.getElementById('pick-photo')
+    const clearBtn = document.getElementById('clear-photo')
+    const previewBox = document.getElementById('photo-preview')
+    const thumb = document.getElementById('photo-thumb')
+    const photoArea = document.getElementById('photo-area')
+    let selectedFile = null
+
+    pickBtn.addEventListener('click', (ev) => { ev.stopPropagation(); photoInput.click() })
+    clearBtn.addEventListener('click', () => {
+      selectedFile = null
+      try{ photoInput.value = '' }catch(e){}
+      try{ photoInput.files = new DataTransfer().files }catch(e){}
+      previewBox.style.display = 'none'
+      clearBtn.style.display = 'none'
+      thumb.src = ''
+      const fname = document.getElementById('photo-fname')
+      if(fname) fname.innerText = ''
+    })
+
+    const MAX_UPLOAD_BYTES = 5 * 1024 * 1024 // 5 MB
+    const MAX_WIDTH = 1280
+    const DEFAULT_QUALITY = 0.75
+
+    function showPreview(file, compressedInfo){
+      if(!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        thumb.src = reader.result
+        previewBox.style.display = 'flex'
+        clearBtn.style.display = 'inline-block'
+        const short = file.name.length>30?file.name.slice(0,28)+'…':file.name
+        const fname = document.getElementById('photo-fname')
+        fname.innerText = short
+        if(compressedInfo){ fname.innerText += ` — ${formatBytes(compressedInfo.original)} → ${formatBytes(compressedInfo.compressed)}` }
+      }
+      reader.readAsDataURL(file)
+    }
+
+    function formatBytes(bytes){ if(bytes < 1024) return bytes + ' B'; if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB'; return (bytes/(1024*1024)).toFixed(1) + ' MB' }
+
+    async function compressImageIfNeeded(file){
+      if(!file.type.startsWith('image/')) return {ok:false,reason:'not-image'}
+      const originalSize = file.size
+      if(originalSize <= MAX_UPLOAD_BYTES && originalSize <= 500*1024) return {ok:true, file, info:{original: originalSize, compressed: originalSize}}
+      const img = await new Promise((resolve, reject)=>{
+        const r = new FileReader()
+        r.onload = ()=>{
+          const im = new Image()
+          im.onload = ()=>resolve(im)
+          im.onerror = reject
+          im.src = r.result
+        }
+        r.onerror = reject
+        r.readAsDataURL(file)
+      })
+      const scale = Math.min(1, MAX_WIDTH / img.width)
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
+      let blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', DEFAULT_QUALITY))
+      if(!blob) return {ok:false,reason:'compress-failed'}
+      if(blob.size >= originalSize) return {ok:true, file, info:{original: originalSize, compressed: originalSize}}
+      let finalBlob = blob; let quality = DEFAULT_QUALITY
+      while(finalBlob.size > MAX_UPLOAD_BYTES && quality > 0.35){ quality -= 0.1; const b = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality)); if(b) finalBlob = b }
+      const newFile = new File([finalBlob], (file.name || 'photo.jpg').replace(/\s+/g,'_'), {type: 'image/jpeg'})
+      return {ok:true, file: newFile, info:{original: originalSize, compressed: finalBlob.size}}
+    }
+
+    photoInput.addEventListener('change', async (ev)=>{
+      const f = ev.target.files && ev.target.files[0]
+      if(!f) return
+      if(!f.type.startsWith('image/')) return alert('Por favor selecciona una imagen')
+      if(f.size > 15 * 1024 * 1024) return alert('La imagen es demasiado grande (máx 15MB)')
+      result.innerText = 'Procesando imagen...'
+      const comp = await compressImageIfNeeded(f)
+      result.innerText = ''
+      if(!comp.ok) return alert('No se pudo procesar la imagen')
+      selectedFile = comp.file
+      showPreview(selectedFile, comp.info)
+    })
+
+    ;['dragenter','dragover'].forEach(ev => photoArea.addEventListener(ev, (e)=>{e.preventDefault();photoArea.style.borderColor='#63b3ed'}))
+    ;['dragleave','drop'].forEach(ev => photoArea.addEventListener(ev, (e)=>{e.preventDefault();photoArea.style.borderColor='#cbd5e1'}))
+    photoArea.addEventListener('drop', async (e)=>{
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
+      if(!f) return
+      if(!f.type.startsWith('image/')) return alert('Por favor arrastra una imagen')
+      const dt = new DataTransfer(); dt.items.add(f); photoInput.files = dt.files
+      result.innerText = 'Procesando imagen...'
+      const comp = await compressImageIfNeeded(f)
+      result.innerText = ''
+      if(!comp.ok) return alert('No se pudo procesar la imagen')
+      selectedFile = comp.file
+      showPreview(selectedFile, comp.info)
+    })
+
+    photoArea.addEventListener('click', (e) => { if(e.target === clearBtn || e.target === pickBtn || e.target.closest('#photo-preview')) return; photoInput.click() })
+
+    // Confirmation modal flow: show a preview modal before final submit
+    const submitBtn = document.getElementById('submit-btn')
+    function buildSummaryHTML(values){
+      const lines = []
+      lines.push(`<div style=\"margin-bottom:8px\"><strong>Nombre:</strong> ${values.name || ''}</div>`)
+      lines.push(`<div style=\"margin-bottom:8px\"><strong>Teléfono:</strong> ${values.phone || ''}</div>`)
+      lines.push(`<div style=\"margin-bottom:8px\"><strong>Dirección:</strong> ${values.address || ''}</div>`)
+      lines.push(`<div style=\"margin-bottom:8px\"><strong>Wallet:</strong> ${values.wallet || ''}</div>`)
+      lines.push(`<div style=\"margin-bottom:8px\"><strong>Peso (kg):</strong> ${values.weight_kg || '—'}</div>`)
+      if(values.photoPreview){ lines.push(`<div style=\"margin-top:8px\"><strong>Foto:</strong><div style=\"margin-top:6px\">${values.photoPreview}</div></div>`) }
+      return lines.join('\n')
+    }
+
+    function openConfirmModal(values){
+      // create modal element
+      const modal = document.createElement('div')
+      modal.style.position = 'fixed'
+      modal.style.inset = '0'
+      modal.style.background = 'rgba(0,0,0,0.5)'
+      modal.style.display = 'flex'
+      modal.style.alignItems = 'center'
+      modal.style.justifyContent = 'center'
+      modal.style.zIndex = 9999
+      const box = document.createElement('div')
+      box.style.background = 'white'
+      box.style.padding = '16px'
+      box.style.borderRadius = '10px'
+      box.style.maxWidth = '420px'
+      box.style.width = '90%'
+  box.innerHTML = `<h2 style=\"margin-top:0\">Confirmar envío</h2><div id=\"confirm-body\">${buildSummaryHTML(values)}</div><div style=\"display:flex;gap:8px;justify-content:flex-end;margin-top:12px\"><button id=\"confirm-edit\" style=\"background:#f1f5f9;color:#111;border:1px solid #cbd5e1;padding:8px 12px;border-radius:6px;\">Editar</button><button id=\"confirm-send\" style=\"background:#2b6cb0;color:#fff;border:none;padding:8px 12px;border-radius:6px;\">Confirmar</button></div>`
+      modal.appendChild(box)
+      document.body.appendChild(modal)
+      document.getElementById('confirm-edit').addEventListener('click', ()=>{ document.body.removeChild(modal) })
+      document.getElementById('confirm-send').addEventListener('click', async ()=>{
+        // perform actual submit
+        try{
+          const data = new FormData(form)
+          const w = (document.getElementById('weight-input')||{}).value
+          if(!w) data.delete('weight_kg')
+          if(selectedFile){ data.set('photo', selectedFile, selectedFile.name) }
+          // include honeypot (empty) automatically; hp input exists in the form
+          const res = await fetch('/submit', { method: 'POST', body: data })
+          if (!res.ok) { result.className = 'notice error'; result.innerText = 'Error al enviar: ' + (await res.text()); document.body.removeChild(modal); return }
+          const body = await res.json()
+          result.className = 'notice success'
+          result.innerHTML = `<strong>Enviado</strong> ID: ${body.id} — Estado: ${body.status}`
+          form.reset()
+          selectedFile = null
+          try{ photoInput.value = '' }catch(e){}
+          try{ photoInput.files = new DataTransfer().files }catch(e){}
+          previewBox.style.display = 'none'
+          clearBtn.style.display = 'none'
+          thumb.src = ''
+          const fname = document.getElementById('photo-fname'); if(fname) fname.innerText = ''
+        }catch(err){ result.className = 'notice error'; result.innerText = 'Error de red: ' + (err && err.message) }
+        try{ document.body.removeChild(modal) }catch(e){}
+      })
+    }
+
+    submitBtn.addEventListener('click', (e)=>{
+      // gather current values for preview
+      const values = {
+        name: (form.elements['name']||{}).value,
+        phone: (form.elements['phone']||{}).value,
+        address: (form.elements['address']||{}).value,
+        wallet: (form.elements['wallet']||{}).value,
+        weight_kg: (form.elements['weight_kg']||{}).value,
+        photoPreview: previewBox.style.display !== 'none' ? `<img src=\"${thumb.src}\" style=\"max-width:100%;height:auto;border-radius:6px\"/>` : ''
+      }
+      // basic validation: require name
+      if(!values.name || values.name.trim() === ''){ result.className = 'notice error'; result.innerText = 'Por favor ingresa tu nombre'; return }
+      openConfirmModal(values)
+    })
+  </script>
+</body>
+</html>

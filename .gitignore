@@ -1,0 +1,15 @@
+/.venv
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+transactions.db
+/backups
+/dist
+/build
+/.pytest_cache
+/.mypy_cache
+/.vscode
+src/static/uploads

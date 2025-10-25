@@ -44,6 +44,8 @@
     </header>
 
     <h1>Ranking público</h1>
+    
+    <div id="stats"></div>
     <div id="leaderboard" class="card">Cargando...</div>
 
     <!-- contributors modal removed -->
@@ -99,6 +101,30 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
 
     loadLeaderboard()
+
+    async function load(){
+      try{
+        const s = await fetch('/stats')
+        if(!s.ok) throw new Error('stats fetch failed: ' + s.status)
+        const stats = await s.json()
+        document.getElementById('stats').innerHTML = `<div class="card">Total kg: ${stats.total_kg} | Transacciones: ${stats.total_count}</div>`
+
+        // fetch more items (server side limit still applies) to ensure we can sort/filter reliably
+        const l = await fetch('/transactions?limit=100')
+        if(!l.ok) throw new Error('transactions fetch failed: ' + l.status)
+        const items = await l.json()
+        // store
+        allTransactions = Array.isArray(items) ? items : []
+        // default visual active
+        const firstBtn = document.querySelector('.filter-btn[data-filter="all"]')
+        if(firstBtn) firstBtn.style.background = 'rgba(255,255,255,0.12)'
+        applyFilterAndRender()
+      }catch(e){
+        console.error(e)
+        dbg.innerText = 'JS error: ' + (e.message || e)
+      }
+    }
+    load()
 
     // contributors removed
   </script>

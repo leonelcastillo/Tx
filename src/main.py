@@ -343,6 +343,36 @@ def patch_status(tx_id: int, status_in: schemas.TransactionUpdateStatus, request
     return updated
 
 
+
+@app.patch("/transactions/{tx_id}", response_model=schemas.TransactionOut)
+def patch_transaction(tx_id: int, updates: schemas.TransactionUpdate, request: Request, db: Session = Depends(get_db)):
+    """Admin-only: update mutable fields on a transaction (name, phone, wallet, weight_kg, address)."""
+    require_admin(request)
+    data = updates.dict(exclude_unset=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="No updatable fields provided")
+
+    updated = crud.update_transaction(db, tx_id, data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    # serialize response to avoid ORM issues and ensure datetimes are native
+    return {
+        'id': updated.id,
+        'name': updated.name,
+        'phone': updated.phone,
+        'wallet': updated.wallet,
+        'weight_kg': updated.weight_kg,
+        'address': updated.address,
+        'photo': updated.photo,
+        'collected_weight_kg': updated.collected_weight_kg,
+        'collected_photo': updated.collected_photo,
+        'collected_at': updated.collected_at if getattr(updated, 'collected_at', None) is not None else None,
+        'date': updated.date if getattr(updated, 'date', None) is not None else None,
+        'status': updated.status.value if hasattr(updated.status, 'value') else str(updated.status),
+    }
+
+
 @app.patch("/transactions/{tx_id}/collect", response_model=schemas.TransactionOut)
 def collect_transaction_endpoint(
     tx_id: int,

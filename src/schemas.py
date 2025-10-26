@@ -43,4 +43,15 @@ class TransactionOut(BaseModel):
         orm_mode = True
 
 
+class TransactionUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    wallet: Optional[str] = None
+    weight_kg: Optional[float] = None
+    address: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
 # Authentication schemas removed for MVP

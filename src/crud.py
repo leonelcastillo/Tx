@@ -50,3 +50,22 @@ def collect_transaction(db: Session, tx_id: int, collected_weight: Optional[floa
     db.commit()
     db.refresh(tx)
     return tx
+
+
+def update_transaction(db: Session, tx_id: int, updates: dict):
+    """Update allowed fields on a transaction. `updates` is a dict of field->value."""
+    tx = get_transaction(db, tx_id)
+    if not tx:
+        return None
+    # allowed fields to update
+    allowed = {'name', 'phone', 'wallet', 'weight_kg', 'address'}
+    changed = False
+    for k, v in updates.items():
+        if k in allowed:
+            setattr(tx, k, v)
+            changed = True
+    if changed:
+        db.add(tx)
+        db.commit()
+        db.refresh(tx)
+    return tx

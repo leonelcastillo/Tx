@@ -57,6 +57,7 @@
       <div style="display:flex;justify-content:flex-start;gap:8px;align-items:center">
         <input id="admin-key" type="text" placeholder="x-admin-key" />
         <button id="refresh">Refrescar</button>
+        <button id="open-edit">Editar</button>
       </div>
       <div style="display:flex;gap:12px;align-items:center">
         <div class="controls">
@@ -75,6 +76,39 @@
     </div>
   </div>
 
+  <!-- Edit modal -->
+  <div id="edit-modal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9999">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45)"></div>
+    <div style="position:relative;max-width:720px;width:94%;background:#fff;border-radius:10px;padding:18px;box-shadow:0 10px 40px rgba(2,6,23,0.6);z-index:10000">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0;font-size:18px">Buscar y editar transacción</h2>
+        <button id="close-edit" style="background:#ef4444">Cerrar</button>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <input id="edit-search" type="text" placeholder="Buscar por ID, nombre, wallet o teléfono" style="flex:1;padding:8px;border:1px solid #d1d5db;border-radius:8px" />
+        <button id="do-search">Buscar</button>
+      </div>
+
+      <div id="edit-result" style="display:none">
+        <form id="edit-form" style="display:flex;flex-direction:column;gap:8px">
+          <input id="edit-id" type="hidden" />
+          <label>Nombre <input id="edit-name" type="text" /></label>
+          <label>Teléfono <input id="edit-phone" type="text" /></label>
+          <label>Wallet <input id="edit-wallet" type="text" /></label>
+          <label>Peso (kg) <input id="edit-weight" type="number" step="0.01" /></label>
+          <label>Dirección <input id="edit-address" type="text" /></label>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+            <button type="button" id="save-edit">Guardar</button>
+            <button type="button" id="cancel-edit" style="background:#9ca3af">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="edit-msg" class="muted" style="margin-top:8px"></div>
+    </div>
+  </div>
+
   <script>
     const listEl = document.getElementById('list')
     const statusEl = document.getElementById('filter-status')
@@ -88,6 +122,8 @@
         const r = await fetch(`/transactions?limit=200`)
         if(!r.ok) throw new Error('failed: '+r.status)
         const rows = await r.json()
+        // cache rows so per-row edits can open instantly without refetch
+        window.__admin_rows = rows
         render(rows)
       }catch(e){ listEl.innerText = 'Error cargando: '+(e.message||e) }
     }
@@ -108,8 +144,9 @@
           const addressCell = r.address ? `<div class="tx-address">${escapeHtml(r.address)}</div>` : `<div class="tx-address placeholder">Sin dirección</div>`
           const walletCell = r.wallet ? escapeHtml(r.wallet) : '<span class="placeholder">Sin wallet</span>'
           html += `<tr><td>${r.id}</td><td>${escapeHtml(r.name||'')}</td><td>${escapeHtml(r.phone||'')}</td><td class="wallet-cell">${walletCell}</td><td>${addressCell}</td><td>${r.weight_kg||''}</td><td>${r.date||''}</td><td>${r.status||''}</td><td>`
-      html += `<select data-id="${r.id}" class="status-select"><option value="pending">pending</option><option value="collected">collected</option><option value="cancelled">cancelled</option></select>`
-    html += ` <button data-id="${r.id}" class="del danger">Eliminar</button>`
+        html += `<select data-id="${r.id}" class="status-select"><option value="pending">pending</option><option value="collected">collected</option><option value="cancelled">cancelled</option></select>`
+        html += ` <button data-id="${r.id}" class="edit-btn">Editar</button>`
+      html += ` <button data-id="${r.id}" class="del danger">Eliminar</button>`
       // collect controls (desktop)
       html += `<div style="display:inline-block;margin-left:8px;vertical-align:middle">`+
   `<input type="number" step="0.01" placeholder="Kg" class="collect-weight" data-id="${r.id}" style="width:80px;padding:4px;margin-right:6px" required>`+
@@ -133,6 +170,7 @@
   const mobileAddress = r.address ? `<div class="tx-address">${escapeHtml(r.address)}</div>` : `<div class="placeholder">Sin dirección</div>`
   html += `<div class="tx-card"><div class="tx-row"><div><strong>#${r.id} — ${escapeHtml(r.name||'')}</strong></div><div class="tx-meta"><div>${escapeHtml(r.phone||'')}</div>${mobileWallet}${mobileAddress}<div>${displayWeight}</div></div><div class="tx-date">${r.date||''}</div><div class="tx-actions">`
   html += `<select data-id="${r.id}" class="status-select"><option value="pending">pending</option><option value="collected">collected</option><option value="cancelled">cancelled</option></select>`
+  html += ` <button data-id="${r.id}" class="edit-btn">Editar</button>`
   html += ` <button data-id="${r.id}" class="del danger">Eliminar</button>`
   // collect inputs for mobile: hidden file input + visible label trigger to open camera
   html += `<div style="display:flex;gap:6px;align-items:center;margin-left:6px;margin-top:6px">`+
@@ -213,6 +251,134 @@
 
     // initial
     load()
+
+    // --- Edit modal behavior ---
+    const openEditBtn = document.getElementById('open-edit')
+    const editModal = document.getElementById('edit-modal')
+    const closeEditBtn = document.getElementById('close-edit')
+    const doSearchBtn = document.getElementById('do-search')
+    const editSearch = document.getElementById('edit-search')
+    const editResult = document.getElementById('edit-result')
+    const editMsg = document.getElementById('edit-msg')
+    const editForm = document.getElementById('edit-form')
+    const editId = document.getElementById('edit-id')
+    const editName = document.getElementById('edit-name')
+    const editPhone = document.getElementById('edit-phone')
+    const editWallet = document.getElementById('edit-wallet')
+    const editWeight = document.getElementById('edit-weight')
+    const editAddress = document.getElementById('edit-address')
+    const saveEditBtn = document.getElementById('save-edit')
+    const cancelEditBtn = document.getElementById('cancel-edit')
+
+    function showEditModal(){ editMsg.innerText = ''; editSearch.value = ''; editResult.style.display='none'; editModal.style.display='flex'; editSearch.focus() }
+    function hideEditModal(){ editModal.style.display='none' }
+
+    openEditBtn.addEventListener('click', ()=>{
+      showEditModal()
+    })
+    closeEditBtn.addEventListener('click', hideEditModal)
+    cancelEditBtn.addEventListener('click', hideEditModal)
+
+    // helper: populate form with transaction object
+    function populateEdit(tx){
+      editId.value = tx.id
+      editName.value = tx.name || ''
+      editPhone.value = tx.phone || ''
+      editWallet.value = tx.wallet || ''
+      editWeight.value = (tx.weight_kg != null) ? tx.weight_kg : ''
+      editAddress.value = tx.address || ''
+      editResult.style.display = 'block'
+      editMsg.innerText = ''
+    }
+
+    // Search logic: if numeric -> try GET /transactions/{id}, else fetch list and fuzzy-match
+    doSearchBtn.addEventListener('click', async ()=>{
+      const q = (editSearch.value||'').trim()
+      if(!q){ editMsg.innerText = 'Ingresa un ID, nombre, wallet o teléfono para buscar'; return }
+      editMsg.innerText = 'Buscando...'
+      try{
+        let tx = null
+        if(/^[0-9]+$/.test(q)){
+          const r = await fetch(`/transactions/${q}`)
+          if(r.ok) tx = await r.json()
+        }
+        if(!tx){
+          // try to search within cached rows first (fast)
+          const qlow = q.toLowerCase()
+          if(window.__admin_rows && Array.isArray(window.__admin_rows)){
+            tx = window.__admin_rows.find(r=> (String(r.id)===q) || (String(r.name||'').toLowerCase().includes(qlow)) || (String(r.wallet||'').toLowerCase().includes(qlow)) || (String(r.phone||'').toLowerCase().includes(qlow)) )
+          }
+          if(!tx){
+            // fallback: search server-side among up to 1000 rows
+            const r = await fetch('/transactions?limit=1000')
+            if(!r.ok) throw new Error('failed listing')
+            const rows = await r.json()
+            const qlow2 = q.toLowerCase()
+            tx = rows.find(r=> (String(r.id)===q) || (String(r.name||'').toLowerCase().includes(qlow2)) || (String(r.wallet||'').toLowerCase().includes(qlow2)) || (String(r.phone||'').toLowerCase().includes(qlow2)) )
+          }
+        }
+        if(!tx){ editMsg.innerText = 'No se encontró ninguna transacción'; return }
+        populateEdit(tx)
+      }catch(err){ editMsg.innerText = 'Error buscando: '+(err.message||err) }
+    })
+
+    // Save (PATCH) handler
+    saveEditBtn.addEventListener('click', async ()=>{
+      const id = editId.value
+      if(!id){ editMsg.innerText = 'Primero realiza una búsqueda y selecciona una transacción'; return }
+      const payload = {}
+      if(editName.value) payload.name = editName.value
+      else payload.name = ''
+      if(editPhone.value) payload.phone = editPhone.value
+      if(editWallet.value) payload.wallet = editWallet.value
+      if(editWeight.value !== '') payload.weight_kg = Number(editWeight.value)
+      if(editAddress.value) payload.address = editAddress.value
+
+      const key = adminKeyEl.value
+      if(!key){ if(!confirm('No se ha ingresado x-admin-key. Continuar sin clave (si ADMIN_API_KEY está configurado esto fallará)?')) return }
+      editMsg.innerText = 'Guardando...'
+      try{
+        saveEditBtn.disabled = true
+        const r = await fetch(`/transactions/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-key':key},body:JSON.stringify(payload)})
+        if(!r.ok){
+          const txt = await r.text().catch(()=>null)
+          throw new Error(`${r.status} ${txt||''}`)
+        }
+        const updated = await r.json()
+        editMsg.innerText = 'Guardado correctamente.'
+        // refresh main list and close after a moment
+        await load()
+        setTimeout(()=>{ hideEditModal() }, 600)
+      }catch(err){ editMsg.innerText = 'Error guardando: '+(err.message||err) }
+      finally{ saveEditBtn.disabled = false }
+    })
+
+    // handle per-row edit button clicks (opens modal pre-filled)
+    document.addEventListener('click', async (e)=>{
+      const eb = e.target.closest && e.target.closest('.edit-btn')
+      if(!eb) return
+      const id = eb.getAttribute('data-id')
+      if(!id) return
+      editMsg.innerText = 'Cargando transacción...'
+      try{
+        // try to find in cached rows first to avoid an extra network call
+        let tx = null
+        if(window.__admin_rows && Array.isArray(window.__admin_rows)){
+          tx = window.__admin_rows.find(r=> String(r.id) === String(id))
+        }
+        if(tx){
+          populateEdit(tx)
+          showEditModal()
+          editMsg.innerText = ''
+          return
+        }
+        const r = await fetch(`/transactions/${id}`)
+        if(!r.ok) throw new Error('No encontrada: '+r.status)
+        tx = await r.json()
+        populateEdit(tx)
+        showEditModal()
+      }catch(err){ editMsg.innerText = 'Error cargando transacción: '+(err.message||err) }
+    })
   </script>
 </body>
 </html>

@@ -270,7 +270,21 @@
     const saveEditBtn = document.getElementById('save-edit')
     const cancelEditBtn = document.getElementById('cancel-edit')
 
-    function showEditModal(){ editMsg.innerText = ''; editSearch.value = ''; editResult.style.display='none'; editModal.style.display='flex'; editSearch.focus() }
+    function showEditModal(withResult=false){ 
+      editMsg.innerText = '';
+      // when opening directly for a transaction, show the form immediately
+      if(withResult){
+        editResult.style.display = 'block'
+        // clear search field but keep focus on first input for editing
+        editSearch.value = ''
+        try{ editName.focus() }catch(e){}
+      }else{
+        editSearch.value = ''
+        editResult.style.display='none'
+        editSearch.focus()
+      }
+      editModal.style.display='flex'
+    }
     function hideEditModal(){ editModal.style.display='none' }
 
     openEditBtn.addEventListener('click', ()=>{
@@ -368,15 +382,15 @@
         }
         if(tx){
           populateEdit(tx)
-          showEditModal()
+          showEditModal(true)
           editMsg.innerText = ''
           return
         }
         const r = await fetch(`/transactions/${id}`)
         if(!r.ok) throw new Error('No encontrada: '+r.status)
         tx = await r.json()
-        populateEdit(tx)
-        showEditModal()
+  populateEdit(tx)
+  showEditModal(true)
       }catch(err){ editMsg.innerText = 'Error cargando transacción: '+(err.message||err) }
     })
   </script>

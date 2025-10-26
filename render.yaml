@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: tx-fastapi
+    env: python
+    plan: free
+    repo: '' # Fill with your GitHub repo URL or connect via the Render dashboard
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker src.main:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: ADMIN_API_KEY
+        value: ''
+      - key: PINATA_JWT
+        value: ''
+      - key: PINATA_API_KEY
+        value: ''
+      - key: PINATA_API_SECRET
+        value: ''
+      - key: REDIS_URL
+        value: ''

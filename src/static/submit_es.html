@@ -78,9 +78,11 @@
     <nav id="mobile-nav" aria-hidden="true" style="position:fixed;top:0;right:-320px;width:280px;height:100%;background:rgba(255,255,255,0.97);box-shadow:-6px 0 18px rgba(2,6,23,0.35);transition:right .25s;z-index:40;padding:18px">
       <button id="close-nav" aria-label="Cerrar" style="float:right;border:0;background:transparent;font-size:18px">✕</button>
       <ul style="list-style:none;padding:16px 0;margin:36px 0 0 0;display:flex;flex-direction:column;gap:12px">
+        <li><a href="https://pambiclub.vercel.app/">Inicio</a></li>
         <li><a href="/static/submit_es.html">Reciclar</a></li>
         <li><a href="/static/observer_es.html">Observar</a></li>
-        <li><a href="/static/ranking_es.html">Ranking</a></li>
+        <li><a href="/static/ranking_es.html" >Ranking</a></li>
+  <li><a href="https://wa.me/584122550770" target="_blank" rel="noopener noreferrer">Contacto</a></li>
       </ul>
     </nav>
     <div id="nav-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30"></div>
@@ -95,19 +97,19 @@
           <label>Nombre *</label>
           <input name="name" required autocomplete="name" />
 
-          <label>Teléfono</label>
-          <input name="phone" inputmode="tel" autocomplete="tel" />
+          <label>Teléfono *</label>
+          <input name="phone" inputmode="tel" required autocomplete="tel" />
 
-          <label>Dirección</label>
+          <label>Dirección (opcional)</label>
           <input name="address" autocomplete="street-address" />
 
-          <label>Wallet</label>
+          <label>Wallet (opcional) <a href="https://play.google.com/store/apps/details?id=app.phantom" target="_blank" rel="noopener noreferrer">(Solana Phantom wallet)</a></label>
           <input name="wallet" autocomplete="off" />
 
-          <label>Peso (kg)</label>
+          <label>Peso (kg) (opcional)</label>
           <input id="weight-input" name="weight_kg" type="number" step="0.01" min="0.01" inputmode="decimal" />
 
-          <label>Foto (si no pesa, sube una imagen)</label>
+          <label>Foto (si no puedes pesar, sube una imagen)</label>
           <div id="photo-area">
             <div style="display:flex;align-items:center;gap:12px;justify-content:center;flex-direction:column;text-align:center;padding:6px">
               <div style="font-size:36px;line-height:1">📷</div>

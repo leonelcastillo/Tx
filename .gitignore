@@ -12,4 +12,3 @@ transactions.db
 /.pytest_cache
 /.mypy_cache
 /.vscode
-src/static/uploads

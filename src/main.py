@@ -449,14 +449,28 @@ def export_csv(api_key: Optional[str] = None, db: Session = Depends(get_db)):
 
     def iterfile():
         rows = db.query(models.Transaction).all()
-        header = ['id','name','phone','wallet','weight_kg','address','photo','date','status']
+        # include collected fields so exports contain collected weight/photo/date when present
+        header = ['id','name','phone','wallet','weight_kg','address','photo','date','status','collected_weight_kg','collected_photo','collected_at']
         out = []
         from io import StringIO
         sio = StringIO()
         writer = csv.writer(sio)
         writer.writerow(header)
         for r in rows:
-            writer.writerow([r.id,r.name,r.phone,r.wallet,r.weight_kg,r.address,r.photo,r.date,r.status])
+            writer.writerow([
+                r.id,
+                r.name,
+                r.phone,
+                r.wallet,
+                r.weight_kg,
+                r.address,
+                r.photo,
+                r.date,
+                r.status,
+                getattr(r, 'collected_weight_kg', None),
+                getattr(r, 'collected_photo', None),
+                getattr(r, 'collected_at', None),
+            ])
         sio.seek(0)
         yield sio.read()
 

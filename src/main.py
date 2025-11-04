@@ -5,6 +5,7 @@ from typing import Optional
 import uuid
 import traceback
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import shutil
 import os
 from sqlalchemy.orm import Session
@@ -475,3 +476,56 @@ def export_csv(api_key: Optional[str] = None, db: Session = Depends(get_db)):
         yield sio.read()
 
     return StreamingResponse(iterfile(), media_type='text/csv')
+
+
+@app.get("/admin/backup")
+def admin_backup(request: Request):
+    """Admin-only: create a zip archive containing the SQLite DB (if used) and the uploads folder, and return it.
+    This is intended as a temporary admin-only convenience to fetch a full backup for local inspection.
+    """
+    require_admin(request)
+    import tempfile
+    import zipfile
+    from datetime import datetime
+
+    now = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+    tmpdir = tempfile.mkdtemp(prefix='tx_backup_')
+    zip_path = os.path.join(tmpdir, f'tx_backup_{now}.zip')
+
+    # Determine DB file path if using SQLite
+    dbfile = None
+    try:
+        if database.DATABASE_URL and database.DATABASE_URL.startswith('sqlite'):
+            # support sqlite:///./transactions.db and sqlite:////absolute/path
+            url = database.DATABASE_URL
+            if url.startswith('sqlite:///'):
+                dbfile = url.replace('sqlite:///', '')
+            elif url.startswith('sqlite://'):
+                dbfile = url.replace('sqlite://', '')
+            # resolve relative path against project root
+            if dbfile and not os.path.isabs(dbfile):
+                dbfile = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), dbfile)
+    except Exception:
+        dbfile = None
+
+    # Build the zip
+    with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as z:
+        # add DB file if present
+        if dbfile and os.path.exists(dbfile):
+            try:
+                z.write(dbfile, arcname=os.path.basename(dbfile))
+            except Exception:
+                pass
+        # add uploads folder content
+        for root, dirs, files in os.walk(UPLOAD_DIR):
+            for f in files:
+                full = os.path.join(root, f)
+                # store uploads under uploads/<filename> in the zip
+                arcname = os.path.relpath(full, STATIC_DIR)
+                try:
+                    z.write(full, arcname=arcname)
+                except Exception:
+                    pass
+
+    # Return the zip file as a downloadable response
+    return FileResponse(zip_path, media_type='application/zip', filename=os.path.basename(zip_path))

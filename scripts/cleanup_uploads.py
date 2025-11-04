@@ -57,8 +57,21 @@ def find_unused(upload_dir: str, referenced: Set[str]) -> list:
 def main():
     root = os.path.dirname(os.path.dirname(__file__))
     parser = argparse.ArgumentParser(description="Cleanup unused uploads in src/static/uploads by comparing against DB references")
-    parser.add_argument("--db", default=os.path.join(root, "transactions.db"), help="Path to sqlite transactions DB")
-    parser.add_argument("--uploads", default=os.path.join(root, "src", "static", "uploads"), help="Uploads directory to scan")
+    # default DB: prefer DATABASE_URL when set (sqlite:/// style), otherwise use ./transactions.db
+    env_db = os.environ.get('DATABASE_URL')
+    default_db = os.path.join(root, "transactions.db")
+    if env_db and env_db.startswith('sqlite'):
+        # support sqlite:///./transactions.db and sqlite:////absolute/path
+        if env_db.startswith('sqlite:///'):
+            default_db = env_db.replace('sqlite:///', '')
+        elif env_db.startswith('sqlite://'):
+            default_db = env_db.replace('sqlite://', '')
+
+    # default uploads dir: allow UPLOAD_DIR env var to override for persistent mounts
+    default_uploads = os.environ.get('UPLOAD_DIR', os.path.join(root, 'src', 'static', 'uploads'))
+
+    parser.add_argument("--db", default=default_db, help="Path to sqlite transactions DB")
+    parser.add_argument("--uploads", default=default_uploads, help="Uploads directory to scan")
     parser.add_argument("--dry-run", action="store_true", default=True, dest="dry_run", help="Only list files that would be deleted (default)")
     parser.add_argument("--yes", action="store_true", help="Actually delete files (implies --no-dry-run)")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")

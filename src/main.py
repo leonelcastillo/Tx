@@ -18,8 +18,28 @@ app = FastAPI(title="Plastic Bottle Transactions")
 # ensure static/upload dirs
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
-UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads")
+
+# Allow uploads directory to be placed on a persistent disk via the UPLOAD_DIR env var.
+# If not provided, fall back to src/static/uploads to preserve current behavior.
+DEFAULT_UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads")
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", DEFAULT_UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Mount static files. If uploads live outside the static dir (e.g. on a persistent
+# disk mounted at /data) mount the uploads path at /static/uploads first so that
+# the more specific mount is matched before the general /static mount. This keeps
+# client URLs (/static/uploads/<file>) working regardless of where uploads live.
+try:
+    static_abs = os.path.abspath(STATIC_DIR)
+    upload_abs = os.path.abspath(UPLOAD_DIR)
+    # If UPLOAD_DIR is outside STATIC_DIR, mount it at /static/uploads first
+    if not (upload_abs == static_abs or upload_abs.startswith(static_abs + os.sep)):
+        app.mount("/static/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+except Exception:
+    # best-effort; don't crash startup if mounting fails
+    pass
+
+# Mount the main static directory (fallback for other static assets)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 

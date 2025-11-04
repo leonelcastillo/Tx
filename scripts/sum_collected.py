@@ -1,5 +1,16 @@
 import sqlite3
-con = sqlite3.connect('transactions.db')
+import os
+
+# Determine sqlite file from DATABASE_URL if provided, otherwise use local transactions.db
+db_path = 'transactions.db'
+env_db = os.environ.get('DATABASE_URL')
+if env_db and env_db.startswith('sqlite'):
+	if env_db.startswith('sqlite:///'):
+		db_path = env_db.replace('sqlite:///', '')
+	elif env_db.startswith('sqlite://'):
+		db_path = env_db.replace('sqlite://', '')
+
+con = sqlite3.connect(db_path)
 cur = con.cursor()
 cur.execute("SELECT COUNT(*) FROM transactions WHERE collected_weight_kg IS NOT NULL")
 count = cur.fetchone()[0]

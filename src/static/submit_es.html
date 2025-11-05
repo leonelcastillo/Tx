@@ -122,7 +122,9 @@
             </div>
 
             <div style="display:flex;gap:8px;align-items:center;flex-direction:column">
-              <input id="photo-input" name="photo" type="file" accept="image/*" capture="environment" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" />
+        <!-- Allow choosing existing images from device as well as taking new photos.
+          Removing the `capture` attribute prevents forcing the camera on mobile browsers. -->
+        <input id="photo-input" name="photo" type="file" accept="image/*" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" />
               <button type="button" id="pick-photo">📷 Tomar / Seleccionar</button>
               <button type="button" id="clear-photo" style="display:none;background:#fff;color:#c00;border:1px solid #f56565">Eliminar</button>
               <div id="photo-fname"></div>

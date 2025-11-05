@@ -61,6 +61,11 @@
         <button class="filter-btn" data-filter="pending" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:#111">Pendientes</button>
       </div>
       <div style="margin-left:auto;color:#1a202c;font-size:13px" id="list-info"></div>
+      <!-- Search box: search by name or wallet -->
+      <div style="width:100%;margin-top:8px;display:flex;gap:8px;align-items:center">
+        <input id="search-input" type="search" placeholder="Buscar por nombre o wallet..." style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)" />
+        <button id="clear-search" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent">Limpiar</button>
+      </div>
     </div>
   </div>
   <div class="card" style="padding:8px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -118,6 +123,7 @@
   let currentFilter = 'all' // all | collected | pending
   let currentPage = 1
   let pageSize = 10
+  let searchQuery = ''
 
     function applyFilterAndRender(){
       const el = document.getElementById('list')
@@ -144,6 +150,16 @@
       // apply filter
       if(currentFilter === 'collected') items = items.filter(t => (t.status || '').toLowerCase() === 'collected' || (t.status || '').toLowerCase() === 'recogida' || (t.status || '').toLowerCase() === 'recibida')
       if(currentFilter === 'pending') items = items.filter(t => (t.status || '').toLowerCase() === 'pending' || (t.status || '').toLowerCase() === 'pendiente')
+
+      // apply search query (case-insensitive) on name and wallet
+      if(searchQuery){
+        const q = searchQuery.toLowerCase()
+        items = items.filter(t => {
+          const name = (t.name || '').toLowerCase()
+          const wallet = (t.wallet || '').toLowerCase()
+          return name.includes(q) || wallet.includes(q)
+        })
+      }
 
       // pagination
       const totalItems = items.length
@@ -247,6 +263,25 @@
   btn.style.background = 'rgba(0,0,0,0.18)'; btn.style.color = '#fff'
       applyFilterAndRender()
     })
+
+    // search input wiring
+    const searchInput = document.getElementById('search-input')
+    const clearSearch = document.getElementById('clear-search')
+    if(searchInput){
+      searchInput.addEventListener('input', (e)=>{
+        searchQuery = String(e.target.value || '').trim()
+        currentPage = 1
+        applyFilterAndRender()
+      })
+    }
+    if(clearSearch){
+      clearSearch.addEventListener('click', ()=>{
+        if(searchInput) searchInput.value = ''
+        searchQuery = ''
+        currentPage = 1
+        applyFilterAndRender()
+      })
+    }
 
     async function load(){
       try{

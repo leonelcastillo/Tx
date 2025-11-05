@@ -63,6 +63,9 @@
       <div style="margin-left:auto;color:#1a202c;font-size:13px" id="list-info"></div>
     </div>
   </div>
+  <div class="card" style="padding:8px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div id="pagination" style="flex:1;display:flex;align-items:center;gap:12px"></div>
+  </div>
 
   <h2 style="margin-top:14px">Últimas transacciones</h2>
   <div id="list"></div>
@@ -110,9 +113,11 @@
       dbg.innerText = 'Global error: ' + (ev.error?.message || ev.message)
     })
 
-    // transaction list / filter behavior
-    let allTransactions = []
-    let currentFilter = 'all' // all | collected | pending
+  // transaction list / filter behavior
+  let allTransactions = []
+  let currentFilter = 'all' // all | collected | pending
+  let currentPage = 1
+  let pageSize = 10
 
     function applyFilterAndRender(){
       const el = document.getElementById('list')
@@ -139,23 +144,34 @@
       // apply filter
       if(currentFilter === 'collected') items = items.filter(t => (t.status || '').toLowerCase() === 'collected' || (t.status || '').toLowerCase() === 'recogida' || (t.status || '').toLowerCase() === 'recibida')
       if(currentFilter === 'pending') items = items.filter(t => (t.status || '').toLowerCase() === 'pending' || (t.status || '').toLowerCase() === 'pendiente')
-      const totalShown = Math.min(10, items.length)
-      document.getElementById('list-info').innerText = `Mostrando ${totalShown} de ${items.length} coincidencias`
-      if(items.length === 0){ el.innerText = 'Sin transacciones que mostrar'; return }
-      items.slice(0,10).forEach(t => {
+
+      // pagination
+      const totalItems = items.length
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+      if(currentPage > totalPages) currentPage = totalPages
+      const start = (currentPage - 1) * pageSize
+      const end = start + pageSize
+      const pageItems = items.slice(start, end)
+
+      document.getElementById('list-info').innerText = `Mostrando ${pageItems.length} de ${items.length} coincidencias (página ${currentPage}/${totalPages})`
+      if(items.length === 0){ el.innerText = 'Sin transacciones que mostrar'; renderPaginationControls(items.length); return }
+      pageItems.forEach(t => {
         const d = document.createElement('div')
         d.className = 'card'
-        let imgHtml = ''
-        // submission photo (original)
-        if(t.photo){
-          const url = '/static/uploads/' + t.photo
-          imgHtml += `<div style="margin-bottom:6px;color:#666;font-size:12px">Original: ${url}</div><a href="${url}" target="_blank"><img src="${url}" style="max-width:120px;max-height:80px;display:block;margin-bottom:8px" onerror="this.style.display='none'" alt="Imagen envío"/></a>`
-        }
-        // collected photo (admin proof)
-        if(t.collected_photo){
-          const curl = '/static/uploads/' + t.collected_photo
-          imgHtml += `<div style="margin-bottom:6px;color:#666;font-size:12px">Foto recogida: ${curl}</div><a href="${curl}" target="_blank"><img src="${curl}" style="max-width:120px;max-height:80px;display:block;margin-bottom:8px;border:2px solid #2b6cb0" onerror="this.style.display='none'" alt="Imagen recogida"/></a>`
-        }
+          let imgHtml = ''
+          // Show submission and collected photos side-by-side; keep label words but omit the URL text
+          if(t.photo || t.collected_photo){
+            imgHtml += '<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:8px">'
+            if(t.photo){
+              const url = '/static/uploads/' + t.photo
+              imgHtml += `<div style="display:flex;flex-direction:column;align-items:flex-start"><div style="font-size:12px;color:#666;margin-bottom:4px">Original:</div><a href="${url}" target="_blank" style="display:block"><img src="${url}" style="max-width:120px;max-height:80px;object-fit:cover;border-radius:6px" onerror="this.style.display='none'" alt="Imagen envío"/></a></div>`
+            }
+            if(t.collected_photo){
+              const curl = '/static/uploads/' + t.collected_photo
+              imgHtml += `<div style="display:flex;flex-direction:column;align-items:flex-start"><div style="font-size:12px;color:#666;margin-bottom:4px">Foto recogida:</div><a href="${curl}" target="_blank" style="display:block"><img src="${curl}" style="max-width:120px;max-height:80px;object-fit:cover;border-radius:6px;border:2px solid #2b6cb0" onerror="this.style.display='none'" alt="Imagen recogida"/></a></div>`
+            }
+            imgHtml += '</div>'
+          }
 
         // decide which weight to show: prefer collected_weight if present
         const displayWeight = (t.collected_weight_kg != null) ? `${t.collected_weight_kg} kg (recogido)` : ((t.weight_kg != null) ? `${t.weight_kg} kg` : '—')
@@ -163,6 +179,57 @@
         const when = t.collected_at || t.date || t.created_at || ''
         d.innerHTML = `${imgHtml}<b>${t.name}</b> - ${displayWeight} - ${t.status} <br/> ${when}`
         el.appendChild(d)
+      })
+
+      renderPaginationControls(items.length)
+    }
+
+    // render pagination controls (Prev/Next, page numbers, page-size selector)
+    function renderPaginationControls(totalItems){
+      const paginationEl = document.getElementById('pagination')
+      if(!paginationEl) return
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+      // build basic controls
+      let html = ''
+      html += '<div style="display:flex;gap:6px;align-items:center">'
+      html += '<button id="prev-page" ' + (currentPage===1 ? 'disabled' : '') + ' style="padding:6px 8px;border-radius:6px">Anterior</button>'
+      html += '<div id="page-buttons" style="display:flex;gap:6px;margin:0 8px"></div>'
+      html += '<button id="next-page" ' + (currentPage===totalPages ? 'disabled' : '') + ' style="padding:6px 8px;border-radius:6px">Siguiente</button>'
+      html += '</div>'
+      html += '<div style="margin-left:12px">Mostrar: <select id="page-size-select"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select></div>'
+      paginationEl.innerHTML = html
+
+      // populate page number buttons (show a small window around current page)
+      const pageButtonsContainer = document.getElementById('page-buttons')
+      const windowSize = 5
+      let startPage = Math.max(1, currentPage - Math.floor(windowSize/2))
+      let endPage = Math.min(totalPages, startPage + windowSize - 1)
+      if(endPage - startPage + 1 < windowSize){ startPage = Math.max(1, endPage - windowSize + 1) }
+      for(let p = startPage; p <= endPage; p++){
+        const btn = document.createElement('button')
+        btn.textContent = p
+        btn.dataset.page = p
+        btn.style.padding = '6px 8px'
+        btn.style.borderRadius = '6px'
+        btn.style.border = '1px solid rgba(0,0,0,0.06)'
+        btn.style.background = p === currentPage ? 'rgba(0,0,0,0.12)' : 'transparent'
+        btn.style.color = p === currentPage ? '#fff' : '#111'
+        pageButtonsContainer.appendChild(btn)
+      }
+
+      // wire small controls
+      const prev = document.getElementById('prev-page')
+      const next = document.getElementById('next-page')
+      const sizeSelect = document.getElementById('page-size-select')
+      prev && (prev.onclick = ()=>{ if(currentPage>1){ currentPage--; applyFilterAndRender() } })
+      next && (next.onclick = ()=>{ if(currentPage<totalPages){ currentPage++; applyFilterAndRender() } })
+      sizeSelect && (sizeSelect.value = String(pageSize))
+      sizeSelect && (sizeSelect.onchange = (e)=>{ pageSize = Number(e.target.value || 10); currentPage = 1; applyFilterAndRender() })
+      pageButtonsContainer && pageButtonsContainer.addEventListener('click', (ev)=>{
+        const b = ev.target.closest && ev.target.closest('button')
+        if(!b || !b.dataset.page) return
+        const p = Number(b.dataset.page)
+        if(!isNaN(p)) { currentPage = p; applyFilterAndRender() }
       })
     }
 
@@ -173,6 +240,8 @@
       const f = btn.getAttribute('data-filter')
       if(!f) return
       currentFilter = f
+      // reset to first page when filter changes
+      currentPage = 1
   // visual active state: dark translucent background with white text for contrast
   document.querySelectorAll('.filter-btn').forEach(b=>{ b.style.background = 'transparent'; b.style.color = '#111' })
   btn.style.background = 'rgba(0,0,0,0.18)'; btn.style.color = '#fff'
@@ -183,8 +252,9 @@
       try{
         const s = await fetch('/stats')
         if(!s.ok) throw new Error('stats fetch failed: ' + s.status)
-        const stats = await s.json()
-        document.getElementById('stats').innerHTML = `<div class="card">Total kg: ${stats.total_kg} | Transacciones: ${stats.total_count}</div>`
+  const stats = await s.json()
+  const totalKg = (stats && stats.total_kg != null) ? Number(stats.total_kg).toFixed(2) : '0.00'
+  document.getElementById('stats').innerHTML = `<div class="card">Total kg: ${totalKg} | Transacciones: ${stats.total_count}</div>`
 
         // fetch more items (server side limit still applies) to ensure we can sort/filter reliably
         const l = await fetch('/transactions?limit=100')

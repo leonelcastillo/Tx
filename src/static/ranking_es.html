@@ -126,7 +126,8 @@
           // ignore ranking fetch errors - we'll still show stats
         }
 
-        document.getElementById('stats').innerHTML = `<div class="card">Total kg: ${stats.total_kg} | Transacciones: ${stats.total_count} | Colaboradores: ${collaborators}</div>`
+  const totalKg = (stats && stats.total_kg != null) ? Number(stats.total_kg).toFixed(2) : '0.00'
+  document.getElementById('stats').innerHTML = `<div class="card">Total kg: ${totalKg} | Transacciones: ${stats.total_count} | Colaboradores: ${collaborators}</div>`
 
         // fetch more items (server side limit still applies) to ensure we can sort/filter reliably
         const l = await fetch('/transactions?limit=100')

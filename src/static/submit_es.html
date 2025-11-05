@@ -67,6 +67,10 @@
       #pick-photo,#clear-photo{width:100%}
       nav#mobile-nav{width:85vw;right:-85vw}
     }
+    /* Mobile nav link tweaks: show as plain text (no underlines) */
+    nav#mobile-nav ul{padding-left:0}
+    nav#mobile-nav a{color:inherit;text-decoration:none;display:block;padding:6px 0;font-weight:600;border-bottom:none}
+    nav#mobile-nav a:hover, nav#mobile-nav a:focus{opacity:0.9;text-decoration:none}
   </style>
 </head>
 <body>
@@ -82,7 +86,7 @@
         <li><a href="/static/submit_es.html">Reciclar</a></li>
         <li><a href="/static/observer_es.html">Observar</a></li>
         <li><a href="/static/ranking_es.html" >Ranking</a></li>
-  <li><a href="https://wa.me/584122550770" target="_blank" rel="noopener noreferrer">Contacto</a></li>
+        <li><a href="https://wa.me/584122550770" target="_blank" rel="noopener noreferrer">Contacto</a></li>
       </ul>
     </nav>
     <div id="nav-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30"></div>

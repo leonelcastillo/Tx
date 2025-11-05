@@ -67,10 +67,18 @@
       #pick-photo,#clear-photo{width:100%}
       nav#mobile-nav{width:85vw;right:-85vw}
     }
+    /* Make form card and modal scrollable on small screens */
+    @media (max-width:480px){
+      .card{max-height:calc(100vh - 160px);overflow:auto;padding-right:6px}
+      main{max-height:calc(100vh - 120px);overflow:auto}
+    }
     /* Mobile nav link tweaks: show as plain text (no underlines) */
     nav#mobile-nav ul{padding-left:0}
     nav#mobile-nav a{color:inherit;text-decoration:none;display:block;padding:6px 0;font-weight:600;border-bottom:none}
     nav#mobile-nav a:hover, nav#mobile-nav a:focus{opacity:0.9;text-decoration:none}
+    /* Ensure modal boxes created dynamically are scrollable on small screens.
+       Matches the inline-styled modal added by the script (z-index: 9999). */
+    div[style*="z-index: 9999"] > div { max-height: 80vh; overflow-y: auto; box-sizing: border-box; }
   </style>
 </head>
 <body>

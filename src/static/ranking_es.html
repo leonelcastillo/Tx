@@ -112,17 +112,23 @@
   const key = row.identifier || (row.wallet || row.phone || (row.display_name || '').toLowerCase())
   const impact = (impacts && impacts[key]) || null
   let impactHtml = ''
-  if(impact && Number(impact.contrib || 0) > 0){
-    // show kg contributed in last 10 and position change
+  if(impact){
+    // show position change and optionally kg contributed in last window
     const kg = Number(impact.contrib || 0).toFixed(2)
+    const contribPositive = Number(impact.contrib || 0) > 0
     if(impact.posChange === 'new'){
-      impactHtml = ` <span title="Nuevo en ranking por últimos 10 tx" style="font-size:12px;color:#2b6cb0;margin-left:6px">Nuevo • +${kg} kg</span>`
+      impactHtml = ` <span title="Nuevo en ranking por últimos 10 tx" style="font-size:12px;color:#2b6cb0;margin-left:6px">Nuevo${contribPositive ? ` • +${kg} kg` : ''}</span>`
     } else if(impact.posChange === 0){
-      impactHtml = ` <span style="font-size:12px;color:#777;margin-left:6px">= • +${kg} kg</span>`
+      // show '=' only if there was a contribution; otherwise show nothing
+      if(contribPositive){
+        impactHtml = ` <span style="font-size:12px;color:#777;margin-left:6px">= • +${kg} kg</span>`
+      }
     } else if(impact.posChange > 0){
-      impactHtml = ` <span style="font-size:12px;color:green;margin-left:6px">▲${impact.posChange} • +${kg} kg</span>`
+      // moved up
+      impactHtml = ` <span style="font-size:12px;color:green;margin-left:6px">▲${impact.posChange}${contribPositive ? ` • +${kg} kg` : ''}</span>`
     } else {
-      impactHtml = ` <span style="font-size:12px;color:red;margin-left:6px">▼${Math.abs(impact.posChange)} • +${kg} kg</span>`
+      // moved down
+      impactHtml = ` <span style="font-size:12px;color:red;margin-left:6px">▼${Math.abs(impact.posChange)}${contribPositive ? ` • +${kg} kg` : ''}</span>`
     }
   }
   html += `<li style="margin:6px 0;"><strong>${escapeHtml(displayName)}</strong> — ${(+row.total_kg).toFixed(2)} kg${impactHtml}</li>`

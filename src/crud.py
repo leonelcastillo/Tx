@@ -23,7 +23,8 @@ def get_transaction(db: Session, tx_id: int) -> Optional[models.Transaction]:
 
 
 def list_transactions(db: Session, skip: int = 0, limit: int = 100) -> List[models.Transaction]:
-    return db.query(models.Transaction).offset(skip).limit(limit).all()
+    # Return transactions ordered by newest first so `limit` returns the most recent rows
+    return db.query(models.Transaction).order_by(models.Transaction.id.desc()).offset(skip).limit(limit).all()
 
 
 def update_status(db: Session, tx_id: int, status: models.StatusEnum) -> Optional[models.Transaction]:

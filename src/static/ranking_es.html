@@ -65,7 +65,16 @@
         const r = await fetch('/ranking')
         if(!r.ok) throw new Error('fetch failed: ' + r.status)
         const data = await r.json()
-        renderLeaderboard(data)
+
+        // also fetch last 10 transactions to compute impact on ranking
+        let last10 = []
+        try{
+          const t = await fetch('/transactions?limit=10')
+          if(t.ok) last10 = await t.json()
+        }catch(_e){ /* ignore */ }
+
+        const impacts = computeRankingImpact(data, last10)
+        renderLeaderboard(data, impacts)
       } catch (e) {
         console.error('Failed loading ranking', e)
         document.getElementById('leaderboard').innerText = 'Error cargando ranking'
@@ -73,7 +82,7 @@
       }
     }
 
-    function renderLeaderboard(rows) {
+    function renderLeaderboard(rows, impacts) {
       const container = document.getElementById('leaderboard')
       if(!rows || rows.length === 0){ container.innerHTML = '<p>No hay datos aún.</p>'; return }
       let html = '<ol>'
@@ -98,10 +107,95 @@
             displayName = `${row.rep_name || 'anonymous'} (${last4})`
           }
         }
-  html += `<li style="margin:6px 0;"><strong>${escapeHtml(displayName)}</strong> — ${(+row.total_kg).toFixed(2)} kg</li>`
+  // compute a stable key to match ranking rows with transaction wallets/identifiers
+  // The server exposes `identifier` (preferred) which is either wallet or phone.
+  const key = row.identifier || (row.wallet || row.phone || (row.display_name || '').toLowerCase())
+  const impact = (impacts && impacts[key]) || null
+  let impactHtml = ''
+  if(impact && Number(impact.contrib || 0) > 0){
+    // show kg contributed in last 10 and position change
+    const kg = Number(impact.contrib || 0).toFixed(2)
+    if(impact.posChange === 'new'){
+      impactHtml = ` <span title="Nuevo en ranking por últimos 10 tx" style="font-size:12px;color:#2b6cb0;margin-left:6px">Nuevo • +${kg} kg</span>`
+    } else if(impact.posChange === 0){
+      impactHtml = ` <span style="font-size:12px;color:#777;margin-left:6px">= • +${kg} kg</span>`
+    } else if(impact.posChange > 0){
+      impactHtml = ` <span style="font-size:12px;color:green;margin-left:6px">▲${impact.posChange} • +${kg} kg</span>`
+    } else {
+      impactHtml = ` <span style="font-size:12px;color:red;margin-left:6px">▼${Math.abs(impact.posChange)} • +${kg} kg</span>`
+    }
+  }
+  html += `<li style="margin:6px 0;"><strong>${escapeHtml(displayName)}</strong> — ${(+row.total_kg).toFixed(2)} kg${impactHtml}</li>`
       }
       html += '</ol>'
       container.innerHTML = html
+    }
+
+    // Compute impact of the last N transactions on the current ranking.
+    // Approach: take current totals from `ranking` response, subtract contributions
+    // from `lastTx` to get prior totals, then compare positions.
+    function computeRankingImpact(rankingRows, lastTx){
+      if(!Array.isArray(rankingRows)) return {}
+      const currentTotals = {}
+      // build current totals map keyed by wallet/identifier/display_name
+      rankingRows.forEach(r => {
+        const k = r.wallet || r.identifier || (r.display_name || '').toLowerCase()
+        currentTotals[k] = Number(r.total_kg) || 0
+      })
+
+        // sum contributions in lastTx per key using the same identity logic as the server
+        const contribs = {}
+        if(Array.isArray(lastTx)){
+          lastTx.forEach(tx => {
+            const k = (tx.wallet && String(tx.wallet).trim() !== '') ? tx.wallet : (tx.phone || null)
+            if(!k) return // ignore transactions that lack wallet/phone identity
+            const w = Number(tx.collected_weight_kg != null ? tx.collected_weight_kg : (tx.weight_kg != null ? tx.weight_kg : 0)) || 0
+            contribs[k] = (contribs[k] || 0) + w
+          })
+        }
+
+        // ensure currentTotals includes keys that appear only in contribs (new entrants)
+        Object.keys(contribs).forEach(k => {
+          if(!(k in currentTotals)){
+            currentTotals[k] = contribs[k] || 0
+          }
+        })
+
+        // compute prior totals by subtracting contribs (floor at 0)
+        const priorTotals = {}
+        Object.keys(currentTotals).forEach(k => {
+          priorTotals[k] = Math.max(0, (currentTotals[k] || 0) - (contribs[k] || 0))
+        })
+
+        // build sorted arrays of keys by total desc (include all union keys)
+        const sortByTotalDesc = (map)=> Object.keys(map).sort((a,b)=> (map[b]||0) - (map[a]||0) )
+        const priorOrder = sortByTotalDesc(priorTotals)
+        const currentOrder = sortByTotalDesc(currentTotals)
+
+      const priorPos = {}
+      priorOrder.forEach((k,i)=> priorPos[k] = i+1)
+      const currentPos = {}
+      currentOrder.forEach((k,i)=> currentPos[k] = i+1)
+
+      // build impacts map
+      const impacts = {}
+      const unionKeys = new Set([...Object.keys(currentTotals), ...Object.keys(contribs)])
+      unionKeys.forEach(k=>{
+        const contrib = contribs[k] || 0
+        const curPos = currentPos[k]
+        const priorP = priorPos[k]
+        let posChange = 0
+        // mark as 'new' only when prior total was zero and now positive
+        if((priorTotals[k] || 0) <= 0 && (currentTotals[k] || 0) > 0){
+          posChange = 'new'
+        } else if(typeof priorP !== 'undefined' && typeof curPos !== 'undefined'){
+          posChange = priorP - curPos
+        } else {
+          posChange = 0
+        }
+        impacts[k] = { contrib: contrib, posChange: posChange }
+      })
+      return impacts
     }
 
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
